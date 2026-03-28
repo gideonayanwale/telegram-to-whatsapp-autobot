@@ -107,7 +107,7 @@ telegram-to-whatsapp/
 ### 1. Clone or download the project
 
 ```bash
-git clone https://github.com/yourname/telegram-to-whatsapp.git
+git clone https://github.com/gideonayanwale/telegram-to-whatsapp-autobot.git
 cd telegram-to-whatsapp
 ```
 
