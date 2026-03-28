@@ -1,0 +1,4 @@
+telethon
+httpx
+python-dotenv
+cryptg        # optional but speeds up downloads a lot

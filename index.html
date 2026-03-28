@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG → WA Forwarder</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #12121a;
+    --border:    #1e1e2e;
+    --accent:    #00e5a0;
+    --accent2:   #00aaff;
+    --warn:      #ffb347;
+    --danger:    #ff4d6d;
+    --text:      #e2e2f0;
+    --muted:     #5a5a7a;
+    --success:   #00e5a0;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; max-width: 1300px; margin: 0 auto; padding: 24px; }
+
+  /* ── Header ────────────────────────────────────────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 28px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 20px;
+  }
+
+  .logo h1 {
+    font-family: var(--mono);
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .logo p {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--accent);
+    background: rgba(0,229,160,0.08);
+    border: 1px solid rgba(0,229,160,0.2);
+    padding: 8px 14px;
+    border-radius: 6px;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  /* ── Stat cards ─────────────────────────────────────── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.green::after  { background: var(--accent); }
+  .stat-card.blue::after   { background: var(--accent2); }
+  .stat-card.yellow::after { background: var(--warn); }
+  .stat-card.red::after    { background: var(--danger); }
+
+  .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-family: var(--mono);
+  }
+
+  .stat-value {
+    font-family: var(--mono);
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1;
+    transition: all 0.3s;
+  }
+
+  .stat-card.green  .stat-value { color: var(--accent); }
+  .stat-card.blue   .stat-value { color: var(--accent2); }
+  .stat-card.yellow .stat-value { color: var(--warn); }
+  .stat-card.red    .stat-value { color: var(--danger); }
+
+  .stat-sub {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  /* ── Main grid ──────────────────────────────────────── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr;
+    gap: 20px;
+  }
+
+  /* ── Panel base ─────────────────────────────────────── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .panel-count {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    background: var(--bg);
+    padding: 3px 9px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Channel list ───────────────────────────────────── */
+  .channel-list { padding: 12px; }
+
+  .channel-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 12px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    margin-bottom: 6px;
+    cursor: default;
+  }
+
+  .channel-item:hover {
+    background: rgba(255,255,255,0.03);
+    border-color: var(--border);
+  }
+
+  .channel-item.disabled {
+    opacity: 0.5;
+  }
+
+  .channel-indicator {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transition: all 0.3s;
+  }
+
+  .channel-item.disabled .channel-indicator {
+    background: var(--muted);
+    box-shadow: none;
+  }
+
+  .channel-info { flex: 1; min-width: 0; }
+
+  .channel-name {
+    font-size: 0.88rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .channel-handle {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .channel-meta {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .channel-count {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .channel-item.disabled .channel-count { color: var(--muted); }
+
+  .channel-time {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Toggle switch */
+  .toggle-wrap {
+    flex-shrink: 0;
+  }
+
+  .toggle {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .toggle input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 20px;
+    transition: all 0.25s;
+  }
+
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    left: 3px; top: 3px;
+    background: var(--muted);
+    border-radius: 50%;
+    transition: all 0.25s;
+  }
+
+  .toggle input:checked + .toggle-slider {
+    background: rgba(0,229,160,0.2);
+    border: 1px solid rgba(0,229,160,0.4);
+  }
+
+  .toggle input:checked + .toggle-slider::before {
+    transform: translateX(18px);
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  /* ── Log panel ──────────────────────────────────────── */
+  .log-panel { display: flex; flex-direction: column; height: 520px; }
+
+  .log-controls {
+    display: flex;
+    gap: 8px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .filter-btn:hover { border-color: var(--muted); color: var(--text); }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.08); }
+
+  .auto-scroll-toggle {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--mono);
+  }
+
+  .log-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+    font-family: var(--mono);
+    font-size: 0.76rem;
+  }
+
+  .log-body::-webkit-scrollbar { width: 4px; }
+  .log-body::-webkit-scrollbar-track { background: transparent; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .log-entry {
+    display: grid;
+    grid-template-columns: 80px 70px 1fr;
+    gap: 10px;
+    padding: 5px 20px;
+    border-left: 2px solid transparent;
+    transition: background 0.15s;
+    align-items: baseline;
+  }
+
+  .log-entry:hover { background: rgba(255,255,255,0.025); }
+
+  .log-entry.info    { border-left-color: transparent; }
+  .log-entry.success { border-left-color: var(--accent); }
+  .log-entry.warning { border-left-color: var(--warn); }
+  .log-entry.error   { border-left-color: var(--danger); }
+
+  .log-entry.new { animation: flashIn 0.4s ease-out; }
+
+  @keyframes flashIn {
+    from { background: rgba(0,229,160,0.06); }
+    to   { background: transparent; }
+  }
+
+  .log-time  { color: var(--muted); font-size: 0.7rem; }
+  .log-level {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-align: center;
+  }
+
+  .log-entry.info    .log-level { color: var(--muted);   background: rgba(90,90,122,0.2); }
+  .log-entry.success .log-level { color: var(--accent);  background: rgba(0,229,160,0.1); }
+  .log-entry.warning .log-level { color: var(--warn);    background: rgba(255,179,71,0.1); }
+  .log-entry.error   .log-level { color: var(--danger);  background: rgba(255,77,109,0.1); }
+
+  .log-msg { color: var(--text); line-height: 1.5; word-break: break-word; }
+  .log-channel { color: var(--accent2); }
+
+  /* ── Connection indicator ───────────────────────────── */
+  .ws-status {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+  }
+
+  .ws-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: background 0.3s;
+  }
+
+  .ws-dot.connected { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
+  .ws-dot.error     { background: var(--danger); }
+
+  /* ── Empty state ────────────────────────────────────── */
+  .empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: var(--mono);
+  }
+
+  /* ── Responsive ─────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .stats-row  { grid-template-columns: repeat(2, 1fr); }
+    .main-grid  { grid-template-columns: 1fr; }
+    .log-panel  { height: 400px; }
+  }
+
+  @media (max-width: 500px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .log-entry { grid-template-columns: 72px 1fr; }
+    .log-level { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <h1>TG → WA FORWARDER</h1>
+        <p>Real-time monitoring dashboard</p>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div class="ws-status">
+        <div class="ws-dot" id="wsDot"></div>
+        <span id="wsLabel">Connecting...</span>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span id="uptimeLabel">--:--:--</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Stat cards -->
+  <div class="stats-row">
+    <div class="stat-card green">
+      <div class="stat-label">Forwarded</div>
+      <div class="stat-value" id="statForwarded">0</div>
+      <div class="stat-sub">total messages</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Failed</div>
+      <div class="stat-value" id="statFailed">0</div>
+      <div class="stat-sub">delivery errors</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="stat-label">Active Channels</div>
+      <div class="stat-value" id="statActive">0</div>
+      <div class="stat-sub" id="statTotal">of 0 configured</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-label">Success Rate</div>
+      <div class="stat-value" id="statRate">—</div>
+      <div class="stat-sub">delivery rate</div>
+    </div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="main-grid">
+
+    <!-- Channels panel -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📡 Channels</span>
+        <span class="panel-count" id="channelCount">0 channels</span>
+      </div>
+      <div class="channel-list" id="channelList">
+        <div class="empty">Waiting for data...</div>
+      </div>
+    </div>
+
+    <!-- Log panel -->
+    <div class="panel log-panel">
+      <div class="panel-header">
+        <span class="panel-title">🖥 Live Log</span>
+        <span class="panel-count" id="logCount">0 entries</span>
+      </div>
+      <div class="log-controls">
+        <button class="filter-btn active" data-filter="all"   onclick="setFilter('all')">All</button>
+        <button class="filter-btn"        data-filter="success" onclick="setFilter('success')">Success</button>
+        <button class="filter-btn"        data-filter="warning" onclick="setFilter('warning')">Warn</button>
+        <button class="filter-btn"        data-filter="error"  onclick="setFilter('error')">Error</button>
+        <label class="auto-scroll-toggle">
+          <input type="checkbox" id="autoScrollCb" checked>
+          Auto-scroll
+        </label>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="empty">No log entries yet...</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── State ────────────────────────────────────────────────
+  let allLogs    = [];
+  let channels   = [];
+  let filter     = 'all';
+  let knownLogTs = new Set();
+
+  // ── WebSocket ────────────────────────────────────────────
+  const HOST = location.hostname;
+  const PORT = location.port || 8000;
+  let ws, reconnectTimer;
+
+  function connect() {
+    ws = new WebSocket(`ws://${HOST}:${PORT}/ws`);
+
+    ws.onopen = () => {
+      setWsStatus('connected', 'Live');
+      clearTimeout(reconnectTimer);
+    };
+
+    ws.onmessage = ({ data }) => {
+      const msg = JSON.parse(data);
+      if (msg.type === 'init' || msg.type === 'update') {
+        updateStats(msg.summary);
+        updateChannels(msg.channels);
+        updateLogs(msg.logs);
+      }
+      if (msg.type === 'toggle') {
+        const ch = channels.find(c => c.key === msg.key);
+        if (ch) { ch.enabled = msg.enabled; renderChannels(); }
+      }
+    };
+
+    ws.onclose = () => {
+      setWsStatus('error', 'Disconnected');
+      reconnectTimer = setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => setWsStatus('error', 'Error');
+  }
+
+  function setWsStatus(state, label) {
+    const dot = document.getElementById('wsDot');
+    const lbl = document.getElementById('wsLabel');
+    dot.className = `ws-dot ${state}`;
+    lbl.textContent = label;
+  }
+
+  // ── Stats ────────────────────────────────────────────────
+  function updateStats(s) {
+    if (!s) return;
+    document.getElementById('statForwarded').textContent = s.total_forwarded.toLocaleString();
+    document.getElementById('statFailed').textContent    = s.total_failed.toLocaleString();
+    document.getElementById('statActive').textContent    = s.active_channels;
+    document.getElementById('statTotal').textContent     = `of ${s.total_channels} configured`;
+
+    const total = s.total_forwarded + s.total_failed;
+    const rate  = total > 0 ? Math.round((s.total_forwarded / total) * 100) : null;
+    document.getElementById('statRate').textContent = rate !== null ? `${rate}%` : '—';
+
+    // Uptime
+    const u = s.uptime_seconds;
+    const h = String(Math.floor(u / 3600)).padStart(2,'0');
+    const m = String(Math.floor((u % 3600) / 60)).padStart(2,'0');
+    const sec = String(u % 60).padStart(2,'0');
+    document.getElementById('uptimeLabel').textContent = `${h}:${m}:${sec}`;
+  }
+
+  // ── Channels ─────────────────────────────────────────────
+  function updateChannels(data) {
+    if (!data) return;
+    channels = data;
+    renderChannels();
+    document.getElementById('channelCount').textContent =
+      `${data.length} channel${data.length !== 1 ? 's' : ''}`;
+  }
+
+  function renderChannels() {
+    const el = document.getElementById('channelList');
+    if (!channels.length) { el.innerHTML = '<div class="empty">No channels configured</div>'; return; }
+
+    el.innerHTML = channels.map(ch => {
+      const lastActivity = ch.last_activity
+        ? timeAgo(ch.last_activity)
+        : 'no activity';
+      return `
+        <div class="channel-item ${ch.enabled ? '' : 'disabled'}" id="ch-${ch.key}">
+          <div class="channel-indicator"></div>
+          <div class="channel-info">
+            <div class="channel-name">${esc(ch.label)}</div>
+            <div class="channel-handle">${esc(ch.telegram_channel)}</div>
+          </div>
+          <div class="channel-meta">
+            <div class="channel-count">${ch.total_forwarded.toLocaleString()}</div>
+            <div class="channel-time">${lastActivity}</div>
+          </div>
+          <div class="toggle-wrap">
+            <label class="toggle" title="${ch.enabled ? 'Pause channel' : 'Enable channel'}">
+              <input type="checkbox" ${ch.enabled ? 'checked' : ''}
+                     onchange="toggleChannel('${ch.key}', this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function toggleChannel(key, enabled) {
+    const item = document.getElementById(`ch-${key}`);
+    if (item) item.classList.toggle('disabled', !enabled);
+    await fetch(`/api/channel/${key}/toggle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  // ── Logs ─────────────────────────────────────────────────
+  function updateLogs(logs) {
+    if (!logs) return;
+    let hasNew = false;
+    for (const log of logs) {
+      const id = `${log.timestamp}-${log.message}`;
+      if (!knownLogTs.has(id)) {
+        knownLogTs.add(id);
+        allLogs.push({ ...log, _id: id, _isNew: true });
+        hasNew = true;
+      }
+    }
+    // Keep last 200
+    if (allLogs.length > 200) allLogs = allLogs.slice(-200);
+    if (hasNew) renderLogs();
+  }
+
+  function renderLogs() {
+    const body   = document.getElementById('logBody');
+    const filtered = filter === 'all' ? allLogs : allLogs.filter(l => l.level === filter);
+
+    document.getElementById('logCount').textContent =
+      `${filtered.length} entr${filtered.length !== 1 ? 'ies' : 'y'}`;
+
+    if (!filtered.length) {
+      body.innerHTML = '<div class="empty">No matching entries</div>';
+      return;
+    }
+
+    body.innerHTML = filtered.map(e => {
+      const t = new Date(e.timestamp * 1000);
+      const time = t.toTimeString().slice(0, 8);
+      const lvl  = e.level === 'info' ? 'info'
+                 : e.level === 'success' ? 'success'
+                 : e.level === 'warning' ? 'warning'
+                 : 'error';
+      const newCls = e._isNew ? 'new' : '';
+      e._isNew = false;
+      return `<div class="log-entry ${lvl} ${newCls}">
+        <span class="log-time">${time}</span>
+        <span class="log-level">${lvl}</span>
+        <span class="log-msg"><span class="log-channel">[${esc(e.channel_label)}]</span> ${esc(e.message)}</span>
+      </div>`;
+    }).join('');
+
+    const autoScroll = document.getElementById('autoScrollCb').checked;
+    if (autoScroll) body.scrollTop = body.scrollHeight;
+  }
+
+  function setFilter(f) {
+    filter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.filter === f);
+    });
+    renderLogs();
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
+
+  function timeAgo(ts) {
+    const diff = Math.floor(Date.now() / 1000 - ts);
+    if (diff <  60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    return `${Math.floor(diff/3600)}h ago`;
+  }
+
+  // Refresh "time ago" labels every 30s
+  setInterval(renderChannels, 30000);
+
+  // Start
+  connect();
+</script>
+</body>
+</html>
