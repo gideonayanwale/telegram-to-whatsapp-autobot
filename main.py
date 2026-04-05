@@ -17,6 +17,7 @@ from telethon.tl.types import (
 
 from config import ROUTING, WA_SIZE_LIMITS, CONTINUE_ON_RECIPIENT_FAILURE, NOTIFY_ON_SIZE_EXCEEDED
 from whatsapp import upload_to_whatsapp, broadcast_text, broadcast_media
+from audio_processor import process_large_audio, WA_AUDIO_LIMIT_BYTES
 import state
 
 load_dotenv()
@@ -147,6 +148,13 @@ async def forward_message(message, recipients: list[dict], label: str, channel_k
     size_mb = len(file_bytes) / (1024 * 1024)
     limit   = WA_SIZE_LIMITS.get(wa_type, 100)
 
+    # ── Audio over limit → compress / split ────
+    if wa_type == "audio" and len(file_bytes) > WA_AUDIO_LIMIT_BYTES:
+        state.add_log("warning", label, f"Audio too large ({size_mb:.1f}MB) — processing...")
+        await _handle_large_audio(file_bytes, mime, filename, caption, recipients, label, channel_key)
+        return
+
+    # ── Other media over limit → text notice ───
     if size_mb > limit:
         msg = f"{filename} too large ({size_mb:.1f}MB > {limit}MB limit)"
         state.add_log("warning", label, msg)
@@ -160,6 +168,7 @@ async def forward_message(message, recipients: list[dict], label: str, channel_k
             await broadcast_text(recipients, notice)
         return
 
+    # ── Normal upload & send ────────────────────
     state.add_log("info", label, f"Uploading {filename} ({size_mb:.1f}MB) → WhatsApp...")
     media_id = await upload_to_whatsapp(file_bytes, filename, mime)
 
@@ -172,6 +181,79 @@ async def forward_message(message, recipients: list[dict], label: str, channel_k
     await broadcast_media(recipients, media_id, wa_type, caption, filename)
     state.record_success(channel_key)
     state.add_log("success", label, f"{wa_type.capitalize()} forwarded ✓ ({size_mb:.1f}MB)")
+
+
+async def _handle_large_audio(
+    audio_bytes: bytes,
+    mime:        str,
+    filename:    str,
+    caption:     str,
+    recipients:  list[dict],
+    label:       str,
+    channel_key: str,
+):
+    """
+    Compress or split audio that exceeds WhatsApp's 16MB limit,
+    then broadcast the result to all recipients.
+    """
+    outcome = await process_large_audio(audio_bytes, mime, filename)
+
+    # ── Compressed successfully ─────────────────
+    if outcome["action"] == "compressed":
+        compressed_bytes = outcome["bytes"]
+        size_mb = len(compressed_bytes) / (1024 * 1024)
+        state.add_log("info", label, f"Compressed to {size_mb:.1f}MB — uploading...")
+
+        media_id = await upload_to_whatsapp(compressed_bytes, filename, "audio/mpeg")
+        if media_id:
+            await broadcast_media(recipients, media_id, "audio", caption, filename)
+            state.record_success(channel_key)
+            state.add_log("success", label, f"Compressed audio forwarded ✓ ({size_mb:.1f}MB)")
+        else:
+            state.add_log("error", label, "Upload of compressed audio failed")
+            state.record_failure(channel_key)
+
+    # ── Split into chunks ───────────────────────
+    elif outcome["action"] == "split":
+        chunks = outcome["chunks"]
+        total  = outcome["total"]
+        state.add_log("info", label, f"Split into {total} parts — uploading each...")
+
+        # Send caption only with the first chunk
+        for i, chunk_bytes in enumerate(chunks, start=1):
+            part_label = f"🎵 *{filename}* — Part {i}/{total}"
+            chunk_caption = part_label
+            if i == 1 and caption:
+                chunk_caption = f"{part_label}\n\n{caption}"
+
+            chunk_size_mb = len(chunk_bytes) / (1024 * 1024)
+            state.add_log("info", label, f"Uploading part {i}/{total} ({chunk_size_mb:.1f}MB)...")
+
+            media_id = await upload_to_whatsapp(chunk_bytes, f"part{i}_{filename}", "audio/mpeg")
+            if media_id:
+                await broadcast_media(recipients, media_id, "audio", chunk_caption, filename)
+                state.add_log("success", label, f"Part {i}/{total} sent ✓")
+            else:
+                state.add_log("error", label, f"Upload failed for part {i}/{total}")
+                state.record_failure(channel_key)
+
+        state.record_success(channel_key)
+        state.add_log("success", label, f"Audio forwarded in {total} parts ✓")
+
+    # ── Both failed ─────────────────────────────
+    else:
+        reason = outcome.get("reason", "Unknown error")
+        state.add_log("error", label, f"Audio processing failed: {reason}")
+        state.record_failure(channel_key)
+
+        notice = (
+            f"🎵 *{filename}*\n"
+            f"_Audio too large for WhatsApp and could not be processed automatically._\n"
+            f"_{reason}_"
+        )
+        if caption:
+            notice += f"\n\n{caption}"
+        await broadcast_text(recipients, notice)
 
 
 # ─────────────────────────────────────────────
