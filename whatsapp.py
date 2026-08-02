@@ -141,11 +141,11 @@ async def broadcast_media(
 
 ## How the Routing Now Works
 ```
-Telegram message arrives
-         ↓
-   For each recipient in config:
-
-   type = "individual"              type = "channel"
-         ↓                                ↓
-POST /{phone_id}/messages      POST /{newsletter_id}/messages
-  to: "2348012345678"            (no 'to' field — URL is the channel)
+##Telegram message arrives
+##         ↓
+##   For each recipient in config:
+##
+##   type = "individual"              type = "channel"
+##         ↓                                ↓
+## POST /{phone_id}/messages      POST /{newsletter_id}/messages
+##  to: "2348012345678"            (no 'to' field — URL is the channel)
