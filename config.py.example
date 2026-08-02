@@ -1,55 +1,43 @@
 # ─────────────────────────────────────────────────────────────
 # ROUTING CONFIG
 #
+# Copy this file to config.py and fill in your real values.
+#
 # Recipient types:
-#   "individual" → regular WhatsApp number (no + sign)
+#   "individual" → regular WhatsApp number (no + sign, digits only)
 #   "channel"    → WhatsApp Channel/Newsletter ID from Meta dashboard
+#                  (starts with 120363...)
 # ─────────────────────────────────────────────────────────────
 
 ROUTING = [
     {
-        "telegram_channel": "@moltbot4",
-        "label": "News Channel",
+        "telegram_channel": "@yourchannelname",   # Telegram channel username or numeric ID
+        "label": "My Channel",
         "recipients": [
             {
-                "id":    "120363XXXXXXXXXX",   # your WhatsApp Channel ID
-                "label": "WA News Channel",
-                "type":  "channel",            # ← WhatsApp Channel (newsletter)
+                "id":    "120363XXXXXXXXXX",   # WhatsApp Channel ID (from Meta dashboard)
+                "label": "WA Channel",
+                "type":  "channel",
             },
             {
-                "id":    "2349135276009",       # individual number
+                "id":    "2348012345678",       # Individual WhatsApp number (no + sign)
                 "label": "Personal Notify",
                 "type":  "individual",
             },
         ],
     },
-    {
-        "telegram_channel": "@yoursportschannel",
-        "label": "Sports Updates",
-        "recipients": [
-            {
-                "id":    "120363YYYYYYYYYY",
-                "label": "WA Sports Channel",
-                "type":  "channel",
-            },
-        ],
-    },
-    {
-        "telegram_channel": "@yourbusinesschannel",
-        "label": "Business Channel",
-        "recipients": [
-            {
-                "id":    "120363ZZZZZZZZZZ",
-                "label": "WA Business Channel",
-                "type":  "channel",
-            },
-            {
-                "id":    "2348099998888",
-                "label": "CEO Direct",
-                "type":  "individual",
-            },
-        ],
-    },
+    # Add more routes below — one entry per Telegram channel you want to mirror
+    # {
+    #     "telegram_channel": "@anotherchannel",
+    #     "label": "Another Channel",
+    #     "recipients": [
+    #         {
+    #             "id":    "120363YYYYYYYYYY",
+    #             "label": "WA Another Channel",
+    #             "type":  "channel",
+    #         },
+    #     ],
+    # },
 ]
 
 
@@ -57,9 +45,17 @@ ROUTING = [
 # GLOBAL SETTINGS
 # ─────────────────────────────────────────────────────────────
 
+# Keep forwarding to remaining recipients even if one fails
 CONTINUE_ON_RECIPIENT_FAILURE = True
+
+# Send a text notice to recipients when a file is too large to forward
 NOTIFY_ON_SIZE_EXCEEDED       = True
 
+# Set to True if your channels carry music (uses 96kbps compression instead of 64kbps)
+# Only relevant when audio compression is used as fallback
+PREFER_MUSIC_COMPRESSION      = False
+
+# WhatsApp file size limits in MB
 WA_SIZE_LIMITS = {
     "image":    5,
     "video":    16,

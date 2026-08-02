@@ -1,6 +1,27 @@
+# Secrets & credentials
 .env
-/rmd.md
-config.py
-/.snapshots
-/.venv
 
+# Telethon session files (contain your auth token — never commit these)
+*.session
+*.session-journal
+
+# Local config (copy config.py.example → config.py and fill in your values)
+config.py
+
+# Dev notes
+/rmd.md
+
+# Snapshots / local tooling
+/.snapshots
+
+# Python
+/.venv
+/__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# OS
+.DS_Store
+Thumbs.db

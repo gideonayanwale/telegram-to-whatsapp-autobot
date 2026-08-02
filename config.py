@@ -60,6 +60,9 @@ ROUTING = [
 CONTINUE_ON_RECIPIENT_FAILURE = True
 NOTIFY_ON_SIZE_EXCEEDED       = True
 
+# Set to True for channels that carry music (uses 96kbps compression instead of 64kbps)
+PREFER_MUSIC_COMPRESSION      = False
+
 WA_SIZE_LIMITS = {
     "image":    5,
     "video":    16,

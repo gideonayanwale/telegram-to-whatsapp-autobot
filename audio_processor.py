@@ -223,15 +223,23 @@ async def process_large_audio(
     chunks = await split_audio(source, mime_type)
 
     if chunks:
-        # Verify all chunks are under the limit
-        oversized = [i for i, c in enumerate(chunks) if len(c) > WA_AUDIO_LIMIT_BYTES]
-        if oversized:
-            print(f"[AudioProcessor] Warning: chunks {oversized} still over limit after split")
+        # Verify all chunks are under the limit; drop any that aren't
+        # (this can happen with very high-bitrate source files at the boundary)
+        safe_chunks = [c for c in chunks if len(c) <= WA_AUDIO_LIMIT_BYTES]
+        dropped = len(chunks) - len(safe_chunks)
+        if dropped:
+            print(f"[AudioProcessor] Warning: {dropped} chunk(s) still over 16MB after split — dropped")
+
+        if not safe_chunks:
+            return {
+                "action": "failed",
+                "reason": "All split chunks exceeded 16MB. Source file bitrate may be extremely high.",
+            }
 
         return {
             "action": "split",
-            "chunks": chunks,
-            "total":  len(chunks),
+            "chunks": safe_chunks,
+            "total":  len(safe_chunks),
         }
 
     # ── Step 3: Both failed ────────────────────────

@@ -137,6 +137,7 @@ cp .env .env.local   # optional backup
 
 Open `.env` and fill in all 5 values (see **Credentials Setup** section below).
 
+
 ### 4. Create your `config.py`
 
 Copy the example below and edit it with your actual channels and recipients. See **Configuration** section for full details.

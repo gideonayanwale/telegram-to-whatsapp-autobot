@@ -105,7 +105,7 @@ async def send_media_to(
     filename:   str = "attachment",
 ):
     media_block = {"id": media_id}
-    if caption and media_type in ("image", "video", "document"):
+    if caption and media_type in ("image", "video", "document", "audio"):
         media_block["caption"] = caption
     if media_type == "document":
         media_block["filename"] = filename
@@ -135,12 +135,10 @@ async def broadcast_media(
     """Upload once, send to everyone — channels and individuals alike."""
     for r in recipients:
         await send_media_to(r, media_id, media_type, caption, filename)
-```
 
----
+
 
 ## How the Routing Now Works
-```
 ##Telegram message arrives
 ##         ↓
 ##   For each recipient in config:

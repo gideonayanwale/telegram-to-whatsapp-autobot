@@ -180,6 +180,6 @@ async def websocket_endpoint(ws: WebSocket):
 # ── Serve the dashboard HTML ─────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
-    html_path = os.path.join(BASE_DIR, "dashboard", "index.html")
+    html_path = os.path.join(BASE_DIR, "index.html")
     with open(html_path) as f:
         return f.read()

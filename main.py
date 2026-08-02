@@ -15,7 +15,7 @@ from telethon.tl.types import (
     DocumentAttributeFilename,
 )
 
-from config import ROUTING, WA_SIZE_LIMITS, CONTINUE_ON_RECIPIENT_FAILURE, NOTIFY_ON_SIZE_EXCEEDED
+from config import ROUTING, WA_SIZE_LIMITS, CONTINUE_ON_RECIPIENT_FAILURE, NOTIFY_ON_SIZE_EXCEEDED, PREFER_MUSIC_COMPRESSION
 from whatsapp import upload_to_whatsapp, broadcast_text, broadcast_media
 from audio_processor import process_large_audio, WA_AUDIO_LIMIT_BYTES
 import state
@@ -148,11 +148,17 @@ async def forward_message(message, recipients: list[dict], label: str, channel_k
     size_mb = len(file_bytes) / (1024 * 1024)
     limit   = WA_SIZE_LIMITS.get(wa_type, 100)
 
-    # ── Audio over limit → compress / split ────
+    # ── Audio over limit → send as document (up to 100MB) ────
     if wa_type == "audio" and len(file_bytes) > WA_AUDIO_LIMIT_BYTES:
-        state.add_log("warning", label, f"Audio too large ({size_mb:.1f}MB) — processing...")
-        await _handle_large_audio(file_bytes, mime, filename, caption, recipients, label, channel_key)
-        return
+        doc_limit = WA_SIZE_LIMITS.get("document", 100)
+        if size_mb > doc_limit:
+            state.add_log("warning", label, f"Audio too large even as document ({size_mb:.1f}MB > {doc_limit}MB) — skipped")
+            if NOTIFY_ON_SIZE_EXCEEDED:
+                await broadcast_text(recipients, f"🎵 *{filename}*\n_Audio too large to send ({size_mb:.1f}MB — limit {doc_limit}MB)_")
+            return
+        state.add_log("info", label, f"Audio too large for audio type ({size_mb:.1f}MB) — sending as document...")
+        wa_type  = "document"
+        # keep original mime so the file opens correctly on the recipient's end
 
     # ── Other media over limit → text notice ───
     if size_mb > limit:
@@ -191,12 +197,13 @@ async def _handle_large_audio(
     recipients:  list[dict],
     label:       str,
     channel_key: str,
+    prefer_music: bool = False,
 ):
     """
     Compress or split audio that exceeds WhatsApp's 16MB limit,
     then broadcast the result to all recipients.
     """
-    outcome = await process_large_audio(audio_bytes, mime, filename)
+    outcome = await process_large_audio(audio_bytes, mime, filename, prefer_music=prefer_music)
 
     # ── Compressed successfully ─────────────────
     if outcome["action"] == "compressed":
