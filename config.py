@@ -35,8 +35,8 @@ ROUTING = [
         ],
     },
     {
-        "telegram_channel": "@yourbusinesschannel",
-        "label": "Business Channel",
+        "telegram_channel": "@lfbc_international",
+        "label": "CHURCH Channel",
         "recipients": [
             {
                 "id":    "120363ZZZZZZZZZZ",
@@ -44,8 +44,8 @@ ROUTING = [
                 "type":  "channel",
             },
             {
-                "id":    "2348099998888",
-                "label": "CEO Direct",
+                "id":    "2349135276009",
+                "label": "CEO Direct(mEDIA)",
                 "type":  "individual",
             },
         ],
@@ -68,4 +68,29 @@ WA_SIZE_LIMITS = {
     "video":    16,
     "audio":    16,
     "document": 100,
+}
+
+# ─────────────────────────────────────────────────────────────
+# HISTORY REPLAY
+# On bot startup, replay past messages from each Telegram channel
+# to WhatsApp with rate-limited delays to avoid Meta blocks.
+# ─────────────────────────────────────────────────────────────
+
+HISTORY_REPLAY = {
+    # Set to True to enable replay on startup
+    "enabled": True,
+
+    # How many past messages to fetch per channel (most recent N)
+    "limit": 50,
+
+    # Seconds to wait between each forwarded message.
+    # 3–5s is safe for Meta; go higher if you see rate-limit errors.
+    "delay_seconds": 30,
+
+    # If True, text-only messages are also replayed (not just media)
+    "include_text": True,
+
+    # File used to track already-replayed message IDs across restarts.
+    # Prevents double-sending if the bot is restarted.
+    "state_file": "replay_state.json",
 }

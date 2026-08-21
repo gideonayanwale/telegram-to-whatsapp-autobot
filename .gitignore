@@ -5,6 +5,9 @@
 *.session
 *.session-journal
 
+# Replay state (tracks which messages have been forwarded — local only)
+replay_state.json
+
 # Local config (copy config.py.example → config.py and fill in your values)
 config.py
 

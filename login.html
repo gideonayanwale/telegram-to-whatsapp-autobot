@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TG → WA Forwarder · Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #0a0a0f;
+      --surface: #12121a;
+      --border:  #1e1e2e;
+      --accent:  #00e5a0;
+      --accent2: #00aaff;
+      --danger:  #ff4d6d;
+      --text:    #e2e2f0;
+      --muted:   #5a5a7a;
+      --mono:    'IBM Plex Mono', monospace;
+      --sans:    'IBM Plex Sans', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 44px 40px 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    }
+
+    /* Top accent line */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 14px 14px 0 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .logo h1 {
+      font-family: var(--mono);
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      line-height: 1.3;
+    }
+
+    .logo p {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.95rem;
+      padding: 12px 44px 12px 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 4px;
+      font-size: 16px;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+    .toggle-pw:hover { color: var(--text); }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 8px;
+      color: #0a0a0f;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    button[type="submit"]:hover  { opacity: 0.9; }
+    button[type="submit"]:active { transform: scale(0.98); }
+    button[type="submit"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,77,109,0.1);
+      border: 1px solid rgba(255,77,109,0.3);
+      border-radius: 7px;
+      color: var(--danger);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      padding: 10px 14px;
+      margin-bottom: 20px;
+    }
+    .error-msg.visible { display: flex; }
+
+    .footer {
+      margin-top: 28px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <h1>TG → WA FORWARDER</h1>
+        <p>Dashboard access</p>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg">
+      <span>🔒</span>
+      <span id="errorText">Incorrect password. Try again.</span>
+    </div>
+
+    <form id="loginForm" method="POST" action="/auth/login">
+      <label for="password">Password</label>
+      <div class="input-wrap">
+        <input type="password" id="password" name="password"
+               placeholder="Enter dashboard password"
+               autocomplete="current-password"
+               autofocus required>
+        <button type="button" class="toggle-pw" id="togglePw" title="Show/hide password">👁</button>
+      </div>
+      <button type="submit" id="submitBtn">Unlock Dashboard →</button>
+    </form>
+
+    <p class="footer">Set password via DASHBOARD_PASSWORD in .env</p>
+  </div>
+
+  <script>
+    // Show server-side error if redirected back with ?error=1
+    if (new URLSearchParams(location.search).get('error')) {
+      document.getElementById('errorMsg').classList.add('visible');
+    }
+
+    // Toggle password visibility
+    const pwInput  = document.getElementById('password');
+    const toggleBtn = document.getElementById('togglePw');
+    toggleBtn.addEventListener('click', () => {
+      const isHidden = pwInput.type === 'password';
+      pwInput.type   = isHidden ? 'text' : 'password';
+      toggleBtn.textContent = isHidden ? '🙈' : '👁';
+    });
+
+    // Disable button while submitting to prevent double-submit
+    document.getElementById('loginForm').addEventListener('submit', () => {
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('submitBtn').textContent = 'Checking...';
+    });
+  </script>
+</body>
+</html>

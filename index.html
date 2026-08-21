@@ -642,6 +642,21 @@
           <div class="status-dot"></div>
           <span id="uptimeLabel">--:--:--</span>
         </div>
+        <form method="POST" action="/auth/logout" style="margin:0;">
+          <button type="submit" id="logoutBtn" style="
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 7px 13px;
+            cursor: pointer;
+            transition: border-color 0.2s, color 0.2s;
+          ">Logout</button>
+        </form>
       </div>
     </header>
 
@@ -740,7 +755,12 @@
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        if (event.code === 4401) {
+          // Session expired or invalid — redirect to login
+          window.location.href = '/login';
+          return;
+        }
         setWsStatus('error', 'Disconnected');
         reconnectTimer = setTimeout(connect, 3000);
       };
